@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="b263fa69-629b-491a-b9c9-2316abc972e7" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="cea3f4ab-b85e-4133-b3cf-23d86f31f24f" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="luojinyang521" database="user" />
+	</db:config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="b80ae04c-3622-4acd-bc16-eba56440682d" >
+		<email:smtp-connection host="smtp.qq.com" user="2314454729@qq.com" password="rifovjwunselecih" />
+	</email:smtp-config>
+	<apikit:config outboundHeadersMapName="outboundHeadersMapName" httpStatusVarName="httpStatus" doc:name="Router" doc:id="449c2f2a-09a1-42a6-87c2-6674ba9e31fc" name="Router" raml="RegisterApi.raml" >
+		<apikit:flow-mappings >
+			<apikit:flow-mapping resource="/login" action="post" content-type="application/json" flow-ref="registerFlow1" />
+		</apikit:flow-mappings>
+	</apikit:config>
+	<db:config name="Database_Config1" doc:name="Database Config" doc:id="61dda1d4-7b27-415c-8454-96acf65b1495" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="luojinyang521" database="user" />
+	</db:config>
+	<db:config name="Database_Config2" doc:name="Database Config" doc:id="fdd237f3-e42e-44d3-89fa-20e16b6de814" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="luojinyang521" database="user" />
+	</db:config>
+	<flow name="registerFlow" doc:id="d801c351-8f88-48df-a99f-255fb169a15a" >
+		<http:listener doc:name="Listener" doc:id="4f29a523-2d62-4f6b-b58d-d72d0f9ec6f9" config-ref="HTTP_Listener_config" path="/api/*"/>
+		<apikit:router doc:id="df360e38-4125-41dc-9f76-ce40c9dd3e9b" config-ref="Router"/>
+	</flow>
+	<flow name="registerFlow1" doc:id="62dd3dbd-773a-497f-a728-2d597cc15b14" >
+		<set-variable value="#[message.payload.username]" doc:name="Set Variable" doc:id="f59da2d5-680b-47f8-b4a9-9e2c0859c874" variableName="username"/>
+		<set-variable value="#[message.payload.password]" doc:name="Set Variable" doc:id="2dead9f5-5940-448f-ac51-06992dec3b94" variableName="password"/>
+		<set-variable value="#[message.payload.sex]" doc:name="Set Variable" doc:id="e612ec52-a37e-47e3-98d3-6351975ed146" variableName="sex"/>
+		<logger level="INFO" doc:name="Logger" doc:id="0adb1c0a-0a12-4a5e-b771-9cbe5934f0cc" message="#[vars]"/>
+		<db:select doc:id="c80d89a5-1bcb-41f9-806b-c285cc1e60d2" config-ref="Database_Config">
+			<db:sql >select * from tb_users  where username=:a</db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	a:vars.username
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="3dc0f4fd-8c29-4e6c-be27-b7a5df3a3798" >
+			<when expression="#[sizeOf(payload)&gt;0]">
+				<logger level="INFO" doc:name="Logger" doc:id="379cff48-a2fb-4b4e-8cfc-0eccfe419f64" message="#[payload]"/>
+				<set-payload value="username was used!" doc:name="Set Payload" doc:id="08970a7d-2a40-484f-8c09-92e7b6af6d73" />
+			</when>
+			<otherwise >
+				<db:insert doc:name="Insert" doc:id="f5731baa-2016-4088-bce5-d5b77be1009d" config-ref="Database_Config1">
+					<db:sql >insert into tb_users values(:a,:b,:c)</db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	a:vars.username,
+	b:vars.password,
+	c:vars.sex
+}]]]></db:input-parameters>
+				</db:insert>
+				<choice doc:name="Choice" doc:id="603347ac-878f-4e5c-b14b-08ed30803886">
+					<when expression="#[sizeOf(payload)&lt;0]">
+						<logger level="INFO" doc:name="Logger" doc:id="6b1f69ab-ccaa-45de-971b-77b8b6d0aa55" message="#[payload]"/>
+						<set-payload value="register failed!" doc:name="Set Payload" doc:id="531d79c9-299c-4aad-9d0c-3596a06b3335" />
+					</when>
+					<otherwise >
+						<logger level="INFO" doc:name="Logger" doc:id="9f60653a-c910-4a96-b1e0-2bfc8118b50f" message="Insert successfully!" />
+						<email:send doc:name="Send" doc:id="948f45ec-cda2-4d92-bfbd-26fa4d3cf711" config-ref="Email_SMTP" fromAddress="2314454729@qq.com" subject="register">
+					<email:to-addresses>
+						<email:to-address value="luojinyang666@163.com" />
+					</email:to-addresses>
+					<email:cc-addresses>
+						<email:cc-address value="luojinyang666@163.com" />
+					</email:cc-addresses>
+					<email:body contentType="text/plain" encoding="UTF-8">
+						<email:content><![CDATA[#["this is successful"]]]></email:content>
+					</email:body>
+				</email:send>
+						<set-payload value="register successfully!" doc:name="Set Payload" doc:id="b8a09e03-f9f5-45c3-ab5d-4e7b20668c22" />
+					</otherwise>
+				</choice>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
